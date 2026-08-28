@@ -1,0 +1,108 @@
+---
+import CartIndicator from './CartIndicator';
+import CategoryMenuList from './CategoryMenuList.astro';
+import { CategoriasResponseSchema } from '../schemas/categoria';
+
+const API_URL = import.meta.env.PUBLIC_API_URL;
+
+let categorias: Awaited<ReturnType<typeof CategoriasResponseSchema.parseAsync>> = [];
+
+try {
+    const res = await fetch(`${API_URL}/store/categorias`);
+    if (res.ok) {
+        categorias = CategoriasResponseSchema.parse(await res.json());
+    }
+} catch {
+    // Si la API no responde, el header igual se muestra, solo sin categorías
+}
+---
+
+<header class="border-b border-stone-200 bg-white sticky top-0 z-20">
+    <div class="max-w-6xl mx-auto px-4">
+        <!-- Fila superior: buscador (izquierda) / logo (centro) / íconos (derecha) -->
+        <div class="h-16 flex items-center gap-6">
+            <form action="/productos" method="get" class="hidden md:flex flex-1">
+                <div class="relative w-full max-w-xs">
+                    <svg
+                        class="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <circle cx="11" cy="11" r="7" />
+                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
+                    <input
+                        type="text"
+                        name="busqueda"
+                        placeholder="Buscar perfumes, marcas..."
+                        class="w-full border border-stone-300 rounded-md pl-9 pr-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-stone-400"
+                    />
+                </div>
+            </form>
+
+            <a href="/" class="flex-1 text-center text-lg font-semibold tracking-tight">
+                Perfumería
+            </a>
+
+            <div class="flex-1 flex items-center justify-end gap-5">
+                <!-- Favoritos: todavía no implementado, es solo el ícono para el diseño -->
+                <a
+                    href="/favoritos"
+                    class="text-stone-600 hover:text-stone-900"
+                    aria-label="Favoritos"
+                >
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 21s-7.5-4.7-10-9.3C.5 8.2 2.3 5 5.6 5c1.9 0 3.4 1 4.4 2.5C11 6 12.5 5 14.4 5 17.7 5 19.5 8.2 22 11.7 19.5 16.3 12 21 12 21z" />
+                    </svg>
+                </a>
+
+                <a
+                    href="/mi-cuenta"
+                    class="text-stone-600 hover:text-stone-900"
+                    aria-label="Mi cuenta"
+                >
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="8" r="4" />
+                        <path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" />
+                    </svg>
+                </a>
+
+                <CartIndicator client:load />
+            </div>
+        </div>
+
+        <!-- Fila inferior: navegación de categorías -->
+        <nav class="hidden md:flex items-center justify-center gap-1 h-11 border-t border-stone-100">
+            {categorias.map((categoria) => (
+                <div class="relative group h-full flex items-center">
+                    <a
+                        href={`/productos?categoria=${categoria.slug}`}
+                        class="px-3 py-2 text-sm text-stone-600 hover:text-stone-900 inline-block"
+                    >
+                        {categoria.nombre}
+                    </a>
+
+                    {categoria.subcategorias.length > 0 && (
+                        <div class="absolute left-1/2 -translate-x-1/2 top-full hidden group-hover:flex bg-white border border-stone-200 rounded-md shadow-lg p-5 gap-8 min-w-[480px] z-30">
+                            {categoria.subcategorias.map((sub) => (
+                                <div class="min-w-[140px]">
+                                    <a
+                                        href={`/productos?categoria=${sub.slug}`}
+                                        class="block text-sm font-medium text-stone-900 mb-2 hover:underline"
+                                    >
+                                        {sub.nombre}
+                                    </a>
+                                    {sub.subcategorias.length > 0 && (
+                                        <CategoryMenuList categorias={sub.subcategorias} />
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            ))}
+        </nav>
+    </div>
+</header>

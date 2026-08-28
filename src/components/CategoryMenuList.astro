@@ -1,0 +1,28 @@
+---
+    import CategoryMenuList from './CategoryMenuList.astro';
+    import type { Categoria } from '../schemas/categoria';
+
+    interface Props {
+        categorias: Categoria[];
+    }
+
+    const { categorias } = Astro.props;
+---
+
+<ul class="space-y-1">
+    {categorias.map((cat) => (
+        <li>
+            <a
+                href={`/productos?categoria=${cat.slug}`}
+                class="block text-sm text-stone-600 hover:text-stone-900"
+            >
+                {cat.nombre}
+            </a>
+            {cat.subcategorias.length > 0 && (
+                <div class="pl-3 mt-1 border-l border-stone-100">
+                    <CategoryMenuList categorias={cat.subcategorias} />
+                </div>
+            )}
+        </li>
+    ))}
+</ul>

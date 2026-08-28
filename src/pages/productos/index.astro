@@ -1,0 +1,52 @@
+---
+    import Layout from '../../layouts/Layout.astro';
+    import ProductCard from '../../components/ProductCard.astro';
+    import { PaginatedSchema, ProductoListItemSchema } from '../../schemas/producto';
+
+    const API_URL = import.meta.env.PUBLIC_API_URL;
+
+    const busqueda = Astro.url.searchParams.get('busqueda') ?? '';
+    const categoria = Astro.url.searchParams.get('categoria') ?? '';
+
+    const params = new URLSearchParams();
+    if (busqueda) params.set('busqueda', busqueda);
+    if (categoria) params.set('categoria', categoria);
+
+    const res = await fetch(`${API_URL}/store/productos?${params}`);
+    const json = await res.json();
+    const productos = PaginatedSchema(ProductoListItemSchema).parse(json);
+---
+
+<Layout title="Productos - Perfumería">
+    <main class="max-w-6xl mx-auto px-4 py-12">
+        <div class="flex items-center justify-between mb-6">
+            <h1 class="text-2xl font-semibold">Productos</h1>
+            {categoria && (
+                <a href="/productos" class="text-sm text-stone-500 hover:text-stone-900">
+                    Quitar filtro de categoría ×
+                </a>
+            )}
+        </div>
+
+        <form class="mb-6">
+            {categoria && <input type="hidden" name="categoria" value={categoria} />}
+            <input
+                type="text"
+                name="busqueda"
+                value={busqueda}
+                placeholder="Buscar productos..."
+                class="border border-stone-300 rounded-md px-3 py-2 text-sm w-full max-w-sm"
+            />
+        </form>
+
+        {productos.data.length === 0 ? (
+            <p class="text-stone-500">No se encontraron productos.</p>
+        ) : (
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {productos.data.map((producto) => (
+                    <ProductCard producto={producto} />
+                ))}
+            </div>
+        )}
+    </main>
+</Layout>

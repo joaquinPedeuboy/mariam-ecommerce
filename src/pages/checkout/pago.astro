@@ -1,0 +1,16 @@
+---
+    import Layout from '../../layouts/Layout.astro';
+    import RedirectToPayment from '../../components/RedirectToPayment';
+
+    const orderId = Number(Astro.url.searchParams.get('order'));
+
+    if (!orderId) {
+        return Astro.redirect('/carrito');
+    }
+---
+
+<Layout title="Procesando pago - Perfumería">
+    <main class="max-w-lg mx-auto px-4">
+        <RedirectToPayment orderId={orderId} client:load />
+    </main>
+</Layout>

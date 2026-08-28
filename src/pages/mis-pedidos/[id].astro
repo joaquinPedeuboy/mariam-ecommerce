@@ -1,0 +1,10 @@
+---
+    import OrderDetailView from "../../components/OrderDetailView";
+    import Layout from "../../layouts/Layout.astro";
+
+    const { id } = Astro.params;
+---
+
+<Layout title="Detalles del pedido - Perfumería">
+    <OrderDetailView client:load orderId={Number(id)} />
+</Layout>
