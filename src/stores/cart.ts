@@ -6,6 +6,8 @@ export interface CartItem {
     slug: string;
     nombre: string;
     precio: number;
+    precioLista: number;
+    porcentajeDescuento: number | null;
     imagen: string | null;
     cantidad: number;
     stockDisponible: number;
@@ -65,4 +67,14 @@ export const $cartCount = computed($cart, (items) =>
 
 export const $cartTotal = computed($cart, (items) =>
     items.reduce((total, item) => total + item.precio * item.cantidad, 0)
+);
+
+// Cuánto se está ahorrando en total por los ítems en oferta. Con `?? item.precio`
+// por las dudas de que haya carritos guardados de antes de este cambio, sin
+// precioLista — en ese caso, simplemente no suman ahorro (no rompen).
+export const $cartAhorro = computed($cart, (items) =>
+    items.reduce(
+        (total, item) => total + ((item.precioLista ?? item.precio) - item.precio) * item.cantidad,
+        0
+    )
 );

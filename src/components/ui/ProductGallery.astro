@@ -1,0 +1,105 @@
+---
+    interface Imagen {
+        url: string;
+        principal: boolean;
+    }
+
+    interface Props {
+        imagenes: Imagen[];
+        apiUrl: string;
+        nombre: string;
+        porcentajeDescuento: number | null;
+    }
+
+    const { imagenes, apiUrl, nombre, porcentajeDescuento } = Astro.props;
+
+    // La principal siempre primero.
+    const ordenadas = [...imagenes].sort((a, b) => Number(b.principal) - Number(a.principal));
+---
+
+<div>
+    <div class="aspect-square bg-stone-100 rounded-lg overflow-hidden relative" transition:name="producto-imagen">
+        {porcentajeDescuento && (
+            <span class="absolute top-3 left-3 bg-violet-800 text-white text-xs font-bold px-2 py-1 rounded-full z-10">
+                -{porcentajeDescuento}%
+            </span>
+        )}
+
+        {ordenadas.length > 0 ? (
+            <div class="flex overflow-x-auto snap-x snap-mandatory scroll-smooth no-scrollbar h-full" id="galeria-principal">
+                {ordenadas.map((img, i) => (
+                    <img
+                        src={`${apiUrl}/storage/${img.url}`}
+                        alt={nombre}
+                        loading={i === 0 ? 'eager' : 'lazy'}
+                        class="w-full h-full object-cover shrink-0 snap-center transition-transform duration-300"
+                        data-imagen-principal={i}
+                    />
+                ))}
+            </div>
+        ) : null}
+    </div>
+
+    {ordenadas.length > 1 && (
+        <div class="flex gap-2 mt-3 overflow-x-auto no-scrollbar">
+            {ordenadas.map((img, i) => (
+                <button
+                    type="button"
+                    class={`w-32 h-32 shrink-0 rounded-xl overflow-hidden border-2 transition-colors ${
+                        i === 0 ? 'border-stone-900' : 'border-transparent'
+                    }`}
+                    data-miniatura={i}
+                    aria-label={`Ver imagen ${i + 1}`}
+                >
+                    <img src={`${apiUrl}/storage/${img.url}`} alt="" class="w-full h-full object-cover" />
+                </button>
+            ))}
+        </div>
+    )}
+</div>
+
+<style>
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+    .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+</style>
+
+<script>
+    const galeria = document.getElementById('galeria-principal');
+    const imagenes = document.querySelectorAll<HTMLImageElement>('[data-imagen-principal]');
+    const miniaturas = document.querySelectorAll<HTMLButtonElement>('[data-miniatura]');
+
+    if (galeria && imagenes.length > 0) {
+        function marcarActiva(indice: number) {
+            miniaturas.forEach((btn, i) => {
+                btn.classList.toggle('border-stone-900', i === indice);
+                btn.classList.toggle('border-transparent', i !== indice);
+            });
+        }
+
+        // Si el usuario hace swipe en la imagen grande en vez de tocar una
+        // miniatura, esto detecta el cambio igual y sincroniza la miniatura activa.
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
+                        marcarActiva(Number((entry.target as HTMLElement).dataset.imagenPrincipal));
+                    }
+                });
+            },
+            { root: galeria, threshold: 0.5 }
+        );
+
+        imagenes.forEach((img) => observer.observe(img));
+
+        miniaturas.forEach((btn, i) => {
+            btn.addEventListener('click', () => {
+                imagenes[i].scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
+            });
+        });
+    }
+</script>

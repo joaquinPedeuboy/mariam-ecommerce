@@ -1,0 +1,166 @@
+---
+    import FavoritoButton from '../FavoritoButton';
+    import type { ProductoListItem } from '../../schemas/producto';
+    import AddToCartButtonCard from '../AddToCartButtonCard';
+
+    interface Props {
+        producto: ProductoListItem;
+    }
+
+    const { producto } = Astro.props;
+    const apiUrl = import.meta.env.PUBLIC_API_URL.replace('/api', '');
+---
+<a
+    href={`/productos/${producto.slug}`}
+    class="block bg-white border border-stone-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow"
+>
+    <div class="aspect-square bg-stone-100 relative group" data-galeria-card>
+        <div class="absolute top-2 right-2 z-10">
+            <FavoritoButton productoEcommerceId={producto.id} client:load />
+        </div>
+        {producto.imagenes.length > 0 ? (
+            <div 
+                class="flex overflow-x-auto snap-x snap-mandatory scroll-smooth no-scrollbar h-full"
+                data-galeria-track
+            >
+                {producto.imagenes.map((img) => (
+                    <img
+                        src={`${apiUrl}/storage/${img}`}
+                        alt={producto.nombre}
+                        loading="lazy"
+                        class="w-full h-full object-cover shrink-0 snap-center"
+                    />
+                ))}
+            </div>
+        ) : null}
+
+        {producto.imagenes.length > 1 && (
+            <>
+                <button
+                    type="button"
+                    class="hidden md:flex absolute left-1.5 top-1/2 -translate-y-1/2 w-6 h-6 items-center justify-center rounded-full bg-white/90 text-stone-700 opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow-sm"
+                    data-galeria-prev
+                    aria-label="Imagen anterior"
+                >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-3.5 h-3.5">
+                        <path d="M15 18l-6-6 6-6" />
+                    </svg>
+                </button>
+                <button
+                    type="button"
+                    class="hidden md:flex absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 items-center justify-center rounded-full bg-white/90 text-stone-700 opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow-sm"
+                    data-galeria-next
+                    aria-label="Imagen siguiente"
+                >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-3.5 h-3.5">
+                        <path d="M9 18l6-6-6-6" />
+                    </svg>
+                </button>
+
+                <div class="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 z-10">
+                    {producto.imagenes.map((_, i) => (
+                        <span
+                            class={`w-1.5 h-1.5 rounded-full ${i === 0 ? 'bg-white' : 'bg-white/50'}`}
+                            data-dot={i}
+                        />
+                    ))}
+                </div>
+            </>
+        )}
+    </div>
+    <div class="p-4 flex flex-col flex-1">
+        <h3 class="text-sm font-medium text-stone-900 line-clamp-2 min-h-10">{producto.nombre}</h3>
+        <div class="mt-1">
+            {producto.precio_oferta ? (
+                    <p class="text-sm md:text-md line-through text-stone-500 mr-2">
+                        ${producto.precio.toLocaleString('es-AR')}
+                    </p>
+                    <div class="flex items-center gap-1">
+                        <p class="text-md md:text-xl text-black font-bold font-poppins">
+                            ${producto.precio_oferta.toLocaleString('es-AR')}
+                        </p>
+                        <p class="flex flex-row text-center bg-violet-600 text-white text-[10px] md:text-sm font-poppins font-bold px-1.5 py-1 rounded-md">
+                            -{producto.porcentaje_descuento}% OFF
+                        </p>
+                    </div>
+            ) : (
+                <p>${producto.precio.toLocaleString('es-AR')}</p>
+            )}
+        </div>
+        <p class="text-[9px] md:text-[11px] leading-tight text-stone-400 mt-1">
+            Precio sin impuestos nacionales: $
+            {(
+                (producto.precio_oferta ?? producto.precio) / 1.21
+            ).toLocaleString('es-AR', { maximumFractionDigits: 0 })}
+        </p>
+        <div class="mt-3">
+            <AddToCartButtonCard producto={producto} client:load />
+        </div>
+    </div>
+</a>
+
+
+<style>
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+    .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+</style>
+
+<script>
+    // Astro dedupe este script una sola vez aunque ProductCard se use
+    // muchas veces en la misma página (carruseles, favoritos, etc.) — por
+    // eso busca TODAS las cards del documento, no una sola.
+    document.querySelectorAll<HTMLElement>('[data-galeria-card]').forEach((card) => {
+        const track = card.querySelector<HTMLElement>('[data-galeria-track]');
+        const dots = card.querySelectorAll<HTMLElement>('[data-dot]');
+        const imgs = track?.querySelectorAll<HTMLImageElement>('img');
+        const btnPrev = card.querySelector<HTMLButtonElement>('[data-galeria-prev]');
+        const btnNext = card.querySelector<HTMLButtonElement>('[data-galeria-next]');
+ 
+        if (!track || !imgs || imgs.length <= 1) return;
+ 
+        let actual = 0;
+ 
+        function irA(indice: number) {
+            const destino = Math.max(0, Math.min(indice, imgs!.length - 1));
+            imgs![destino].scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
+        }
+ 
+        // Sincroniza puntitos tanto si cambian por swipe (touch) como por
+        // las flechas — un solo observer cubre los dos casos.
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
+                        actual = Array.from(imgs!).indexOf(entry.target as HTMLImageElement);
+                        dots.forEach((dot, i) => {
+                            dot.classList.toggle('bg-white', i === actual);
+                            dot.classList.toggle('bg-white/50', i !== actual);
+                        });
+                    }
+                });
+            },
+            { root: track, threshold: 0.5 }
+        );
+ 
+        imgs.forEach((img) => observer.observe(img));
+ 
+        // preventDefault + stopPropagation: la card entera es un <a>, sin
+        // esto tocar la flecha navegaría al producto en vez de cambiar de imagen.
+        btnPrev?.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            irA(actual - 1);
+        });
+ 
+        btnNext?.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            irA(actual + 1);
+        });
+    });
+</script>

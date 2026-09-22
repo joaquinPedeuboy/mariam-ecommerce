@@ -1,0 +1,10 @@
+---
+    import Layout from '../layouts/Layout.astro';
+    import FavoritosView from '../components/FavoritosView';
+---
+
+<Layout title="Mis favoritos">
+    <main class="max-w-6xl mx-auto px-4 py-12">
+        <FavoritosView client:load />
+    </main>
+</Layout>

@@ -3,9 +3,15 @@
     import CartView from '../components/CartView';
 ---
 
-<Layout title="Carrito - Perfumería">
-    <main class="max-w-6xl mx-auto px-4 py-12">
-        <h1 class="text-2xl font-semibold mb-6">Tu carrito</h1>
-        <CartView client:load />
+<Layout title="Carrito - Perfumería Mariam" description="Carrito de compras de Perfumería Mariam">
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12"> 
+
+        <div class="mb-8"> 
+            <h1 class="font-poppins text-2xl sm:text-3xl font-semibold tracking-tight text-stone-900"> Mi carrito </h1> 
+            <p class="mt-1 text-sm text-stone-500 font-poppins"> Revisá tus productos antes de continuar. </p> 
+        </div>
+        
+        <CartView client:load /> 
+
     </main>
 </Layout>

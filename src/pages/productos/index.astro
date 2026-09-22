@@ -1,52 +1,325 @@
 ---
     import Layout from '../../layouts/Layout.astro';
-    import ProductCard from '../../components/ProductCard.astro';
+    import ProductCard from '@/components/ui/ProductCard.astro';
     import { PaginatedSchema, ProductoListItemSchema } from '../../schemas/producto';
+    import ProductFilters from '@/components/ui/productos/ProductFilters.astro';
+import ProductSort from '@/components/ui/productos/ProductSort.astro';
 
     const API_URL = import.meta.env.PUBLIC_API_URL;
 
+    // FILTROS
     const busqueda = Astro.url.searchParams.get('busqueda') ?? '';
     const categoria = Astro.url.searchParams.get('categoria') ?? '';
+    const precioMin = Astro.url.searchParams.get('precio_min') ?? '';
+    const precioMax = Astro.url.searchParams.get('precio_max') ?? '';
+    const orden = Astro.url.searchParams.get('orden') ?? 'relevancia';
+    const destacados = Astro.url.searchParams.get('destacados') === '1';
+    const enOferta = Astro.url.searchParams.get('en_oferta') === '1';
+    const page = Astro.url.searchParams.get('page') ?? '1';
+
+    // CATEGORIAS
+    const categoriasRes = await fetch(
+        `${API_URL}/store/categorias`
+    );
+
+    if (!categoriasRes.ok) {
+        throw new Error('No se pudieron cargar las categorías.');
+    }
+
+    const categoriasJson = await categoriasRes.json();
+
+    interface Categoria {
+        nombre: string;
+        slug: string;
+        subcategorias: Categoria[];
+    }
+
+    const categorias: Categoria[] = Array.isArray(categoriasJson.hamburguesa)
+    ? categoriasJson.hamburguesa
+    : [];
+
+    // PRODUCTOS
 
     const params = new URLSearchParams();
+    
     if (busqueda) params.set('busqueda', busqueda);
     if (categoria) params.set('categoria', categoria);
+    if (precioMin) params.set('precio_min', precioMin);
+    if (precioMax) params.set('precio_max', precioMax);
+    if (destacados) params.set('destacados', '1');
+    if (enOferta) params.set('en_oferta', '1');
+    if (orden !== 'relevancia') {
+        params.set('orden', orden);
+    }
 
-    const res = await fetch(`${API_URL}/store/productos?${params}`);
-    const json = await res.json();
-    const productos = PaginatedSchema(ProductoListItemSchema).parse(json);
+    params.set('page', page);
+
+    const productosRes = await fetch(
+        `${API_URL}/store/productos?${params.toString()}`
+    );
+
+    if (!productosRes.ok) {
+        throw new Error('No se pudieron cargar los productos.');
+    }
+
+    const productosJson = await productosRes.json();
+
+    const productos = PaginatedSchema(
+        ProductoListItemSchema
+    ).parse(productosJson);
+
+    // BUSCAR CATEGORIA
+    function buscarCategoria(
+        lista: Categoria[],
+        slug: string
+    ): Categoria | null {
+
+        for (const cat of lista) {
+
+            if (cat.slug === slug) {
+                return cat;
+            }
+
+            const encontrada = buscarCategoria(
+                cat.subcategorias,
+                slug
+            );
+
+            if (encontrada) {
+                return encontrada;
+            }
+        }
+
+        return null;
+    }
+
+    const categoriaSeleccionada = categoria
+        ? buscarCategoria(categorias, categoria)
+        : null;
+
+    // DETECTAR SI UNA RAMA CONTIENE CATEGORIA SELECCIONADA
+    function contieneCategoria(
+        cat: Categoria,
+        slug: string
+    ): boolean {
+
+        if (cat.slug === slug) {
+            return true;
+        }
+
+        return cat.subcategorias.some(
+            (sub) => contieneCategoria(sub, slug)
+        );
+    }
+
+    // CREAR URLS
+    const crearUrl = (
+        cambios: Record<string, string | null>
+    ) => {
+
+        const url = new URL(Astro.url);
+
+        Object.entries(cambios).forEach(
+            ([key, value]) => {
+
+                if (value === null || value === '') {
+                    url.searchParams.delete(key);
+                } else {
+                    url.searchParams.set(key, value);
+                }
+            }
+        );
+
+        return `${url.pathname}${
+            url.searchParams.toString()
+                ? `?${url.searchParams.toString()}`
+                : ''
+        }`;
+    };
+
+    // PAGINACION
+    const urlAnterior =
+        productos.current_page > 1
+            ? crearUrl({
+                page: String(
+                    productos.current_page - 1
+                ),
+            })
+            : null;
+
+    const urlSiguiente =
+        productos.current_page < productos.last_page
+            ? crearUrl({
+                page: String(
+                    productos.current_page + 1
+                ),
+            })
+            : null;
+
+    // FILTROS ACTIVOS
+    const hayFiltros =
+        Boolean(busqueda) ||
+        Boolean(categoria) ||
+        Boolean(precioMin) ||
+        Boolean(precioMax) ||
+        destacados ||
+        enOferta;
+
+    // TITULO
+    const titulo =
+    categoriaSeleccionada?.nombre ??
+    'Productos';
 ---
 
-<Layout title="Productos - Perfumería">
-    <main class="max-w-6xl mx-auto px-4 py-12">
-        <div class="flex items-center justify-between mb-6">
-            <h1 class="text-2xl font-semibold">Productos</h1>
-            {categoria && (
-                <a href="/productos" class="text-sm text-stone-500 hover:text-stone-900">
-                    Quitar filtro de categoría ×
-                </a>
-            )}
+<Layout title={`${titulo} - Mariam`}>
+    <main class="max-w-6xl mx-auto px-4 py-10">
+
+        <div class="mb-8">
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                    <p class="text-xs uppercase tracking-[0.18em] text-stone-400 mb-2">
+                        Catálogo
+                    </p>
+                    <h1 class="font-serif text-3xl text-stone-900">
+                        {titulo}
+                    </h1>
+                    <p class="font-poppins italic text-sm text-stone-300 mt-1">
+                        {productos.total} productos
+                    </p>
+
+                </div>
+                {hayFiltros && (
+                    <a
+                        href="/productos"
+                        class="rounded-xl border-sm w-1/3 md:w-auto mt-2 md:mt-0 bg-stone-200 p-2 text-sm text-stone-500 hover:text-stone-900 transition-colors font-poppins "
+                    >
+                        Limpiar filtros
+                    </a>
+                )}
+            </div>
         </div>
 
-        <form class="mb-6">
-            {categoria && <input type="hidden" name="categoria" value={categoria} />}
-            <input
-                type="text"
-                name="busqueda"
-                value={busqueda}
-                placeholder="Buscar productos..."
-                class="border border-stone-300 rounded-md px-3 py-2 text-sm w-full max-w-sm"
-            />
-        </form>
+        <!-- BARRA FILTROS -->
+        <div class="border-y border-stone-200 py-4 mb-8">
 
+            <div class="flex items-center justify-between gap-4">
+                <ProductFilters
+                    categorias={categorias}
+                    categoriaSeleccionada={categoria}
+                    precioMin={precioMin}
+                    precioMax={precioMax}
+                    enOferta={enOferta}
+                    destacados={destacados}
+                    busqueda={busqueda}
+                    orden={orden}
+                    hayFiltros={hayFiltros}
+                    crearUrl={crearUrl}
+                />
+
+                <!-- Orden -->
+                <ProductSort busqueda={busqueda} categoria={categoria} precioMin={precioMin} precioMax={precioMax} enOferta={enOferta} destacados={destacados} orden={orden} />
+
+            </div>
+
+        </div>
+
+        <!-- CATEGORIA ACTIVA -->
+        {categoriaSeleccionada && (
+            <div class="mb-6 flex items-center gap-2 text-sm">
+
+                <span class="text-stone-500">
+                    Categoría:
+                </span>
+
+                <span class="inline-flex items-center gap-2 bg-stone-100 rounded-full px-3 py-1 text-stone-700 hover:bg-stone-300">
+
+                    {categoriaSeleccionada.nombre}
+
+                    <a
+                        href={crearUrl({
+                            categoria: null,
+                            page: null,
+                        })}
+                        class="text-stone-400 hover:text-red-700 rounded"
+                        aria-label="Quitar categoría"
+                    >
+                        ×
+                    </a>
+
+                </span>
+
+            </div>
+        )}
+
+        <!-- PRODUCTOS -->
         {productos.data.length === 0 ? (
-            <p class="text-stone-500">No se encontraron productos.</p>
+
+            <div class="py-10 text-center">
+
+                <p class="text-lg md:text-2xl font-poppins font-black text-stone-700 mb-2">
+                    ¿No encontraste el producto que buscabas?
+                </p>
+
+                <p class="text-sm md:text-lg font-poppins text-stone-500 mb-5">
+                    Probá modificando los filtros o la búsqueda.
+                </p>
+
+                <a
+                    href="/productos"
+                    class="inline-flex items-center justify-center rounded-md bg-violet-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-violet-800 transition-colors"
+                >
+                    Ver todos los productos
+                </a>
+
+            </div>
+
         ) : (
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-8">
+
                 {productos.data.map((producto) => (
                     <ProductCard producto={producto} />
                 ))}
+
             </div>
+
+        )}
+
+    <!-- PAGINACION -->
+        {productos.last_page > 1 && (
+            <nav class="mt-12 flex items-center justify-center gap-6">
+
+                {urlAnterior ? (
+                    <a
+                        href={urlAnterior}
+                        class="text-sm text-stone-600 hover:text-stone-900 transition-colors"
+                    >
+                        ← Anterior
+                    </a>
+                ) : (
+                    <span class="text-sm text-stone-300">
+                        ← Anterior
+                    </span>
+                )}
+
+                <span class="text-sm text-stone-500">
+                    Página {productos.current_page}
+                    de {productos.last_page}
+                </span>
+
+                {urlSiguiente ? (
+                    <a
+                        href={urlSiguiente}
+                        class="text-sm text-stone-600 hover:text-stone-900 transition-colors"
+                    >
+                        Siguiente →
+                    </a>
+                ) : (
+                    <span class="text-sm text-stone-300">
+                        Siguiente →
+                    </span>
+                )}
+            </nav>
         )}
     </main>
 </Layout>

@@ -1,18 +1,31 @@
 ---
-	const apiUrl = import.meta.env.PUBLIC_API_URL.replace('/api', '');
-	let apiStatus = 'desconocido';
+	import HeroBanner from '@/components/ui/HeroBanner.astro';
+	import ProductCarousel from '@/components/ui/ProductCarousel.astro';
+	import { PaginatedSchema, ProductoListItemSchema } from '@/schemas/producto';
 
-	try {
-		const res = await fetch(`${apiUrl}/up`);
-		apiStatus = res.ok ? 'conectado ✅' : 'con problemas ⚠️';
-	} catch {
-		apiStatus = 'no responde ❌';
+	const API_URL = import.meta.env.PUBLIC_API_URL;
+
+	async function obtenerProductos(query: string) {
+		try {
+			const res = await fetch(`${API_URL}/store/productos?${query}`);
+			if (!res.ok) return [];
+			const data = PaginatedSchema(ProductoListItemSchema).parse(await res.json());
+			return data.data;
+		} catch {
+			// Si la API no responde, la homepage igual se muestra, solo sin
+			// ese carrusel puntual.
+			return [];
+		}
 	}
+
+	const [ofertas, destacados] = await Promise.all([
+		obtenerProductos('en_oferta=true&per_page=12'),
+		obtenerProductos('destacados=true&per_page=12'),
+	]);
 ---
 
-<main class="min-h-screen flex items-center justify-center bg-stone-50">
-	<div class="text-center">
-		<h1 class="text-3xl font-semibold text-stone-900">Storefront en construcción</h1>
-		<p class="text-stone-600 mt-2">Estado de la API: {apiStatus}</p>
-	</div>
+<main>
+    <HeroBanner />
+    <ProductCarousel titulo="Ofertas del Mes" productos={ofertas} />
+    <ProductCarousel titulo="Destacados de Mariam" productos={destacados} />
 </main>

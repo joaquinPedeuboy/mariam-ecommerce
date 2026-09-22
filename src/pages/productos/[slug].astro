@@ -1,6 +1,8 @@
 ---
-    import { Image } from 'astro:assets';
     import Layout from '../../layouts/Layout.astro';
+    import FavoritoButton from '../../components/FavoritoButton';
+    import ProductCarousel from '@/components/ui/ProductCarousel.astro';
+    import ProductGallery from '@/components/ui/ProductGallery.astro';
     import { ProductoDetalleSchema } from '../../schemas/producto';
     import AddToCartButton from '../../components/AddToCartButton';
 
@@ -22,124 +24,141 @@
 ---
 
 <Layout title={producto.meta_title ?? producto.nombre} description={producto.meta_description ?? undefined}>
-    <main class="max-w-4xl mx-auto px-4 py-12 grid md:grid-cols-2 gap-8">
-        <div class="aspect-square bg-stone-100 rounded-lg overflow-hidden relative">
-            {producto.porcentaje_descuento && (
-                <span class="absolute top-3 left-3 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-md z-10">
-                    -{producto.porcentaje_descuento}%
+    <main class="max-w-6xl mx-auto px-4 py-4">
+        <!-- Breadcrumb --> 
+        <nav class="max-w-6xl mx-auto px-4 py-4 flex items-center text-sm text-stone-500" font-poppins aria-label="Breadcrumb"> 
+            <a href="/productos" class="text-sm text-stone-500 hover:text-stone-900 transition-colors" >
+                Productos 
+            </a> 
+            <span class="mx-2 text-stone-300">/</span> 
+            {producto.categorias.map((cat, index) => (
+                <span>
+                    <a href={`/productos?categoria=${cat.slug}`} class="text-sm text-stone-500 hover:text-stone-900 transition-colors">
+                        {cat.nombre}
+                    </a>
+                    {index < producto.categorias.length - 1 && <span class="mx-2 text-stone-300">/</span>}
                 </span>
-            )}
-            {imagenPrincipal && (
-                <Image
-                    src={`${apiUrl}/storage/${imagenPrincipal.url}`}
-                    alt={producto.nombre}
-                    width={800}
-                    height={800}
-                    loading="lazy"
-                    class="w-full h-full object-cover"
-                    transition:name="producto-imagen"
-                />
-            )}
-        </div>
-
-        <div>
-            <h1 class="text-2xl font-semibold" transition:name="producto-nombre">{producto.nombre}</h1>
-
-            <p class="text-2xl font-bold text-stone-900 mt-2" transition:name="producto-precio">
-                {producto.precio_oferta ? (
-                    <>
-                        <span class="line-through text-stone-400 text-lg mr-2 font-normal">
-                            ${producto.precio.toLocaleString('es-AR')}
-                        </span>
-                        <span>${producto.precio_oferta.toLocaleString('es-AR')}</span>
-                    </>
-                ) : (
-                    <>${producto.precio.toLocaleString('es-AR')}</>
-                )}
-            </p>
-
-            {(mostrarTamanos || mostrarColores) && (
-                <div class="mt-5 space-y-4">
-                    {mostrarTamanos && (
-                        <div>
-                            <p class="text-sm font-medium text-stone-700 mb-2">
-                                Tamaño:{' '}
-                                <span class="font-normal text-stone-500">{producto.variante_tamano}</span>
-                            </p>
-                            <div class="flex flex-wrap gap-2">
-                                {producto.variantes!.tamanos.map((t) =>
-                                    t.disponible ? (
-                                        <a
-                                            href={`/productos/${t.slug}`}
-                                            class={`px-3 py-1.5 text-sm rounded-full border transition-colors ${
-                                                t.valor === producto.variante_tamano
-                                                    ? 'border-stone-900 bg-stone-900 text-white'
-                                                    : 'border-stone-300 text-stone-700 hover:border-stone-500'
-                                            }`}
-                                        >
-                                            {t.valor}
-                                        </a>
-                                    ) : (
-                                        <span
-                                            class="px-3 py-1.5 text-sm rounded-full border border-stone-200 text-stone-300 cursor-not-allowed"
-                                            title="No disponible en esta combinación"
-                                        >
-                                            {t.valor}
-                                        </span>
-                                    )
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    {mostrarColores && (
-                        <div>
-                            <p class="text-sm font-medium text-stone-700 mb-2">
-                                Color:{' '}
-                                <span class="font-normal text-stone-500">
-                                    {producto.variante_color_nombre}
-                                </span>
-                            </p>
-                            <div class="flex flex-wrap gap-2">
-                                {producto.variantes!.colores.map((c) =>
-                                    c.disponible ? (
-                                        <a
-                                            href={`/productos/${c.slug}`}
-                                            title={c.valor}
-                                            class={`w-8 h-8 rounded-full border-2 ${
-                                                c.valor === producto.variante_color_nombre
-                                                    ? 'border-stone-900'
-                                                    : 'border-transparent'
-                                            }`}
-                                            style={{ backgroundColor: c.hex ?? '#e7e5e4' }}
-                                        />
-                                    ) : (
-                                        <span
-                                            title={`${c.valor} — no disponible en esta combinación`}
-                                            class="w-8 h-8 rounded-full border-2 border-transparent opacity-30 cursor-not-allowed"
-                                            style={{ backgroundColor: c.hex ?? '#e7e5e4' }}
-                                        />
-                                    )
-                                )}
-                            </div>
-                        </div>
-                    )}
+            ))} 
+        </nav>
+        <div class="grid md:grid-cols-2 gap-10 lg:gap-16 xl:gap20">
+            <ProductGallery
+                imagenes={producto.imagenes}
+                apiUrl={apiUrl}
+                nombre={producto.nombre}
+                porcentajeDescuento={producto.porcentaje_descuento}
+            />
+    
+            <div>
+                <div class="flex items-start justify-between gap-4 mt-2">
+                    <h1 class="text-2xl font-semibold font-poppins text-stone-900 leading-tight" transition:name="producto-nombre">{producto.nombre}</h1>
+                    <FavoritoButton productoEcommerceId={producto.id} client:load />
                 </div>
-            )}
+    
+                <p class="text-2xl font-bold text-stone-900 mt-5" transition:name="producto-precio">
+                    {producto.precio_oferta ? (
+                        <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+                            <span class="text-lg text-stone-400 line-through">
+                                ${producto.precio.toLocaleString('es-AR')}
+                            </span>
+                            <span class="text-3xl sm:text-4xl font-bold text-stone-900">
+                                ${producto.precio_oferta.toLocaleString('es-AR')}
+                            </span>
+                            <span class="bg-violet-800 text-white text-sm font-bold px-2 py-1 rounded-full ml-2">
+                                -{producto.porcentaje_descuento}%
+                            </span>
+                        </div>
+                    ) : (
+                        <span class="text-3xl sm:text-4xl font-bold text-stone-900"> ${producto.precio.toLocaleString('es-AR')} </span>
+                    )}
+                    <!-- <span>CFTEA 0% Precio sin impuestos nacionales: ${producto.precio_sin_impuestos.toLocaleString('es-AR')}</span> -->
+                </p>
 
-            {producto.descripcion && (
-                <p class="text-stone-600 mt-4">{producto.descripcion}</p>
-            )}
+                <div class="border-t border-stone-200 my-7"></div>
+    
+                {(mostrarTamanos || mostrarColores) && (
+                    <div class="space-y-6">
+                        {mostrarTamanos && (
+                            <div>
 
-            <div class="mt-6">
-                {producto.stock > 0 ? (
-                    <p class="text-sm text-green-700">En stock ({producto.stock} disponibles)</p>
-                ) : (
-                    <p class="text-sm text-red-600">Sin stock</p>
+                                <div class="flex items-center gap-2 mb-3">
+                                    <p class="text-sm font-medium text-stone-700">
+                                        Tamaño:
+                                    </p>
+                                    <span class="text-sm text-stone-500">{producto.variante_tamano}</span>
+                                </div>
+
+                                <div class="flex flex-wrap gap-2">
+                                    {producto.variantes!.tamanos.map((t) =>
+                                        t.disponible ? (
+                                            <a
+                                                href={`/productos/${t.slug}`}
+                                                class={`min-w-17.5 px-4 py-2.5 text-sm text-center rounded-lg border transition-all duration-200 ${
+                                                    t.valor === producto.variante_tamano
+                                                        ? 'border-stone-900 bg-stone-900 text-white shadow-sm'
+                                                        : 'border-stone-300 text-stone-700 hover:border-stone-700'
+                                                }`}
+                                            >
+                                                {t.valor}
+                                            </a>
+                                        ) : (
+                                            <span
+                                                class="min-w-17.5 px-4 py-2.5 text-sm text-center rounded-lg border border-stone-200 text-stone-300 line-through cursor-not-allowed"
+                                                title="No disponible en esta combinación"
+                                            >
+                                                {t.valor}
+                                            </span>
+                                        )
+                                    )}
+                                </div>
+                            </div>
+                        )}
+    
+                        {mostrarColores && ( 
+                            <div> 
+                                <div class="flex items-center gap-2 mb-3"> 
+                                    <p class="text-sm font-semibold text-stone-800"> 
+                                        Color 
+                                    </p> 
+                                    <span class="text-sm text-stone-500"> {producto.variante_color_nombre} </span> 
+                                </div> 
+                                <div class="flex flex-wrap gap-3"> 
+                                    {producto.variantes!.colores.map((c) => c.disponible ? ( 
+                                        <a 
+                                            href={`/productos/${c.slug}`} 
+                                            title={c.valor} 
+                                            aria-label={`Color ${c.valor}`} 
+                                            class={` w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 ${ c.valor === producto.variante_color_nombre ? 'ring-2 ring-stone-900 ring-offset-2' : 'hover:ring-2 hover:ring-stone-300 hover:ring-offset-2' } `} 
+                                        > 
+                                            <span class="w-full h-full rounded-full border border-black/10" style={{ backgroundColor: c.hex ?? '#e7e5e4' }} /> 
+                                        </a> 
+                                        ) : ( 
+                                        <span title={`${c.valor} — no disponible en esta combinación`} class="w-9 h-9 rounded-full border border-stone-200 opacity-30 cursor-not-allowed relative" style={{ backgroundColor: c.hex ?? '#e7e5e4' }} > 
+                                            <span class="absolute top-1/2 left-0 w-full h-px bg-stone-500 rotate-45" /> 
+                                        </span> 
+                                        ) )} 
+                                </div> 
+                            </div> 
+                        )} 
+                    </div> 
+                )}
+                
+                <div class="mt-8"> <AddToCartButton producto={producto} imagen={imagenPrincipal?.url ?? null} client:load /> </div>
+
+                <!-- Información adicional --> 
+                
+                
+                <!-- Descripción -->
+                <div class="border-t border-stone-200 my-7"></div>
+                {producto.descripcion && ( 
+                    <h2 class="text-lg font-semibold font-poppins text-stone-900" > 
+                        Descripción 
+                    </h2> 
+                    <p class="mt-4 text-stone-600 leading-relaxed font-normal text-base sm:text-lg" > {producto.descripcion} </p> 
                 )}
             </div>
-
-            <AddToCartButton producto={producto} imagen={imagenPrincipal?.url ?? null} client:load />
         </div>
+        
     </main>
+
+    <ProductCarousel titulo="También te puede interesar" productos={producto.relacionados} />
 </Layout>

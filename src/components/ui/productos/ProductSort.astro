@@ -1,0 +1,67 @@
+--- 
+interface Props { 
+    busqueda: string; 
+    categoria: string; 
+    precioMin: string; 
+    precioMax: string; 
+    enOferta: boolean; 
+    destacados: boolean; 
+    orden: string; 
+} 
+const { 
+    busqueda, 
+    categoria, 
+    precioMin, 
+    precioMax, 
+    enOferta, 
+    destacados, 
+    orden, 
+} = Astro.props; 
+--- 
+<form method="GET"> 
+    {busqueda && ( <input type="hidden" name="busqueda" value={busqueda} /> )} 
+    {categoria && ( <input type="hidden" name="categoria" value={categoria} /> )} 
+    {precioMin && ( <input type="hidden" name="precio_min" value={precioMin} /> )} 
+    {precioMax && ( <input type="hidden" name="precio_max" value={precioMax} /> )} 
+    {destacados && ( <input type="hidden" name="destacados" value="1" /> )} 
+    {enOferta && ( <input type="hidden" name="en_oferta" value="1" /> )} 
+    <label class="flex items-center gap-1 text-sm text-stone-600"> 
+        <span class="hidden sm:inline whitespace-nowrap"> Ordenar por </span> 
+        <select 
+            name="orden" 
+            class="text-center border-0 bg-transparent text-sm text-stone-800 font-medium outline-none cursor-pointer" 
+            onchange="this.form.submit()" 
+        > 
+            <option 
+                value="relevancia" 
+                selected={orden === 'relevancia'} 
+            > 
+                Relevancia 
+            </option> 
+            <option 
+                value="precio_asc" 
+                selected={orden === 'precio_asc'} 
+            > 
+                Precio: menor a mayor 
+            </option> 
+            <option 
+                value="precio_desc" 
+                selected={orden === 'precio_desc'} 
+            > 
+                Precio: mayor a menor 
+            </option> 
+            <option 
+                value="nombre_asc" 
+                selected={orden === 'nombre_asc'} 
+            > 
+                Nombre: A-Z 
+            </option> 
+            <option 
+                value="nuevos" 
+                selected={orden === 'nuevos'} 
+            > 
+                Más nuevos 
+            </option> 
+        </select> 
+    </label> 
+</form>

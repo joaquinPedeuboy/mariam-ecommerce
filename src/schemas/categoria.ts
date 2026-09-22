@@ -14,4 +14,15 @@ export const CategoriaSchema: z.ZodType<Categoria> = z.lazy(() =>
     })
 );
 
-export const CategoriasResponseSchema = z.array(CategoriaSchema);
+export type CategoriaMenuPrincipal = Categoria;
+
+export const CategoriaMenuPrincipalSchema = CategoriaSchema;
+
+export const CategoriasResponseSchema = z.object({
+    menu_principal: z.array(CategoriaMenuPrincipalSchema),
+    hamburguesa: z.array(CategoriaSchema),
+});
+
+export type CategoriasResponse = z.infer<
+    typeof CategoriasResponseSchema
+>;

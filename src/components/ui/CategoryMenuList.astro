@@ -1,6 +1,6 @@
 ---
     import CategoryMenuList from './CategoryMenuList.astro';
-    import type { Categoria } from '../schemas/categoria';
+    import type { Categoria } from '../../schemas/categoria';
 
     interface Props {
         categorias: Categoria[];
@@ -14,7 +14,7 @@
         <li>
             <a
                 href={`/productos?categoria=${cat.slug}`}
-                class="block text-sm text-stone-600 hover:text-stone-900"
+                class="block text-sm text-stone-600 hover:text-stone-900 hover:bg-stone-200 p-2 rounded-md transition-colors duration-150"
             >
                 {cat.nombre}
             </a>

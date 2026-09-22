@@ -3,12 +3,13 @@ import { z } from 'zod';
 export const ProductoListItemSchema = z.object({
     id: z.number(),
     slug: z.string(),
-    nombre:z.string(),
+    nombre: z.string(),
     precio: z.number(),
     precio_oferta: z.number().nullable(),
     porcentaje_descuento: z.number().nullable(),
     stock: z.number(),
     imagen: z.string().nullable(),
+    imagenes: z.array(z.string()),
     categorias: z.array(z.string()),
 });
 
@@ -47,6 +48,8 @@ export const ProductoDetalleSchema = z.object({
     descripcion: z.string().nullable(),
     precio: z.number(),
     precio_oferta: z.number().nullable(),
+    precio_actual: z.number(),
+    en_oferta: z.boolean(),
     porcentaje_descuento: z.number().nullable(),
     stock: z.number(),
     meta_title: z.string().nullable(),
@@ -56,6 +59,7 @@ export const ProductoDetalleSchema = z.object({
     variante_tamano: z.string().nullable(),
     variante_color_nombre: z.string().nullable(),
     variantes: VariantesSchema,
+    relacionados: z.array(ProductoListItemSchema),
 });
 
 export type ProductoListItem = z.infer<typeof ProductoListItemSchema>;

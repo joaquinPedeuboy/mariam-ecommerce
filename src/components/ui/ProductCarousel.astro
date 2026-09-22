@@ -1,0 +1,134 @@
+---
+    import ProductCard from './ProductCard.astro';
+    import type { ProductoListItem } from '../../schemas/producto';
+
+    interface Props {
+        titulo: string;
+        productos: ProductoListItem[];
+    }
+
+    const { titulo, productos } = Astro.props;
+
+    const POR_PAGINA = 4;
+
+    const paginas: ProductoListItem[][] = [];
+    for (let i = 0; i < productos.length; i += POR_PAGINA) {
+        paginas.push(productos.slice(i, i + POR_PAGINA));
+    }
+---
+
+{productos.length > 0 && (
+    <section class="max-w-6xl mx-auto px-4 py-8" data-carrusel-productos>
+
+        <div class="flex items-center justify-between mb-4">
+                <h2 class="text-4xl font-poppins font-bold text-stone-900 my-4">{titulo}</h2>
+
+            {paginas.length > 1 && (
+                <div class="flex items-center gap-2 shrink-0">
+                    <button
+                        type="button"
+                        class="w-9 h-9 flex items-center justify-center rounded-full border border-stone-300 text-stone-600 hover:text-stone-900 hover:bg-stone-200 transition-colors cursor-pointer"
+                        data-carrusel-prev
+                        aria-label="Productos anteriores"
+                    >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
+                            <path d="M15 18l-6-6 6-6" />
+                        </svg>
+                    </button>
+                    <button
+                        type="button"
+                        class="w-9 h-9 flex items-center justify-center rounded-full border border-stone-300 text-stone-600 hover:text-stone-900 hover:bg-stone-200 transition-colors cursor-pointer"
+                        data-carrusel-next
+                        aria-label="Más productos"
+                    >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
+                            <path d="M9 18l6-6-6-6" />
+                        </svg>
+                    </button>
+                </div>
+            )}
+        </div>
+
+        <div
+            class="flex overflow-x-auto snap-x snap-mandatory scroll-smooth no-scrollbar"
+            data-carrusel-track
+        >
+            {paginas.map((pagina) => (
+                <div class="w-full shrink-0 snap-center grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {pagina.map((producto) => (
+                        <ProductCard producto={producto} />
+                    ))}
+                </div>
+            ))}
+        </div>
+
+        {paginas.length > 1 && (
+            <div class="flex gap-1.5 mt-5">
+                {paginas.map((_, i) => (
+                    <button
+                        type="button"
+                        class="h-0.5 flex-1 bg-stone-200 transition-colors duration-300"
+                        data-carrusel-indicador={i}
+                        aria-label={`Ir a la página ${i + 1} de productos`}
+                    />
+                ))}
+            </div>
+        )}
+    </section>
+)}
+
+<style>
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+    .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+</style>
+
+<script>
+    document.querySelectorAll<HTMLElement>('[data-carrusel-productos]').forEach((seccion) => {
+        const track = seccion.querySelector<HTMLElement>('[data-carrusel-track]');
+        const paginas = track?.querySelectorAll<HTMLElement>(':scope > div');
+        const indicadores = seccion.querySelectorAll<HTMLButtonElement>('[data-carrusel-indicador]');
+        const btnPrev = seccion.querySelector<HTMLButtonElement>('[data-carrusel-prev]');
+        const btnNext = seccion.querySelector<HTMLButtonElement>('[data-carrusel-next]');
+
+        if (!track || !paginas || paginas.length === 0) return;
+
+        let actual = 0;
+
+        function marcarActiva(indice: number) {
+            actual = indice;
+            indicadores.forEach((btn, i) => {
+                btn.classList.toggle('bg-stone-900', i === indice);
+                btn.classList.toggle('bg-stone-200', i !== indice);
+            });
+        }
+
+        function irA(indice: number) {
+            const destino = Math.max(0, Math.min(indice, paginas!.length - 1));
+            paginas![destino].scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
+        }
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
+                        marcarActiva(Array.from(paginas!).indexOf(entry.target as HTMLElement));
+                    }
+                });
+            },
+            { root: track, threshold: 0.5 }
+        );
+
+        paginas.forEach((pagina) => observer.observe(pagina));
+
+        indicadores.forEach((btn, i) => btn.addEventListener('click', () => irA(i)));
+        btnPrev?.addEventListener('click', () => irA(actual - 1));
+        btnNext?.addEventListener('click', () => irA(actual + 1));
+
+        marcarActiva(0);
+    });
+</script>

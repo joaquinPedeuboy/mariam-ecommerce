@@ -1,0 +1,179 @@
+---
+    interface Banner {
+        imagen: string;
+        titulo: string;
+        subtitulo?: string;
+        cta: { texto: string; href: string };
+    }
+
+    // Banners estáticos — decisión tomada: no vale la pena un admin de
+    // banners todavía. Para cambiar la promo, editá este array y poné las
+    // imágenes en /public/banners/.
+    const banners: Banner[] = [
+        {
+            imagen: '/banners/banner1.jpg',
+            titulo: 'Perfumes de temporada',
+            subtitulo: 'Descubrí nuestra selección de fragancias',
+            cta: { texto: 'Ver perfumes', href: '/productos?categoria=perfumes' },
+        },
+        {
+            imagen: '/banners/banner-2.png',
+            titulo: 'Ofertas de la semana',
+            subtitulo: 'Hasta 30% off en productos seleccionados',
+            cta: { texto: 'Ver ofertas', href: '/productos?en_oferta=true' },
+        },
+        {
+            imagen: '/banners/banner-2.png',
+            titulo: 'Ofertas del mes',
+            subtitulo: 'Hasta 50% off en productos seleccionados',
+            cta: { texto: 'Ver ofertas', href: '/productos?en_oferta=true' },
+        },
+    ];
+---
+
+<section class="relative">
+    <div class="flex overflow-x-auto snap-x snap-mandatory scroll-smooth no-scrollbar" id="hero-track">
+        {banners.map((banner, i) => (
+            <div
+                class="w-full shrink-0 snap-center relative aspect-video md:aspect-3/1 bg-stone-200"
+                data-slide={i}
+            >
+                <img src={banner.imagen} alt={banner.titulo} class="w-full h-full object-cover" />
+                <div class="absolute inset-0 bg-black/35 flex flex-col items-start justify-center px-6 md:px-16 text-white">
+                    <h2 class="text-xl md:text-4xl font-semibold mb-1 md:mb-2">{banner.titulo}</h2>
+                    {banner.subtitulo && (
+                        <p class="text-sm md:text-lg mb-3 md:mb-4">{banner.subtitulo}</p>
+                    )}
+                    <a
+                        href={banner.cta.href}
+                        class="bg-white text-stone-900 text-sm font-medium px-4 py-2 md:px-5 md:py-2.5 rounded-md hover:bg-stone-100 transition-colors"
+                    >
+                        {banner.cta.texto}
+                    </a>
+                </div>
+            </div>
+        ))}
+    </div>
+
+    {banners.length > 1 && (
+        <div class="flex items-center gap-4 px-4 md:px-6 py-3 bg-white border-b border-stone-100">
+            <div class="flex-1 flex gap-1.5">
+                {banners.map((_, i) => (
+                    <button
+                        type="button"
+                        class="h-0.5 flex-1 bg-stone-200 transition-colors duration-300"
+                        data-indicador={i}
+                        aria-label={`Ir al banner ${i + 1}`}
+                    />
+                ))}
+            </div>
+            <div class="flex items-center gap-1 shrink-0">
+                <button
+                    type="button"
+                    id="hero-prev"
+                    class="w-7 h-7 flex items-center justify-center text-stone-500 hover:text-stone-900 transition-colors"
+                    aria-label="Banner anterior"
+                >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
+                        <path d="M15 18l-6-6 6-6" />
+                    </svg>
+                </button>
+                <button
+                    type="button"
+                    id="hero-next"
+                    class="w-7 h-7 flex items-center justify-center text-stone-500 hover:text-stone-900 transition-colors"
+                    aria-label="Siguiente banner"
+                >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
+                        <path d="M9 18l6-6-6-6" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    )}
+</section>
+
+<style>
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+    .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+</style>
+
+<script>
+    const track = document.getElementById('hero-track') as HTMLDivElement | null;
+    const slides = document.querySelectorAll<HTMLElement>('[data-slide]');
+    const indicadores = document.querySelectorAll<HTMLButtonElement>('[data-indicador]');
+    const btnPrev = document.getElementById('hero-prev');
+    const btnNext = document.getElementById('hero-next');
+
+    if (track && slides.length > 0) {
+        let actual = 0;
+        let timer: ReturnType<typeof setInterval> | null = null;
+
+        function marcarActivo(indice: number) {
+            actual = indice;
+            indicadores.forEach((btn, i) => {
+                btn.classList.toggle('bg-stone-900', i === indice);
+                btn.classList.toggle('bg-stone-200', i !== indice);
+            });
+        }
+
+        function irA(indice: number) {
+            const destino = Math.max(0, Math.min(indice, slides.length - 1));
+            track.scrollTo({ left: destino * track.clientWidth, behavior: 'smooth', });
+            marcarActivo(destino);
+        }
+
+        function iniciarAutoplay() { if (slides.length <= 1) return; 
+            detenerAutoplay(); 
+            timer = setInterval(() => { 
+                const siguiente = actual >= slides.length - 1 ? 0 : actual + 1; irA(siguiente); }, 5000); 
+        }
+
+        function detenerAutoplay() {
+            if (timer) {
+                clearInterval(timer);
+                timer = null;
+            }
+        }
+ 
+        function irAManualmente(indice: number) {
+            // Cualquier navegación manual reinicia el reloj de 5 segundos,
+            // para no cortar al usuario a mitad de que está mirando algo.
+            irA(indice);
+            iniciarAutoplay();
+        }
+
+        // Detecta qué banner quedó visible mientras el usuario hace swipe,
+        // no solo cuando toca las flechas o los indicadores.
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
+                        marcarActivo(Number((entry.target as HTMLElement).dataset.slide));
+                    }
+                });
+            },
+            { root: track, threshold: 0.5 }
+        );
+
+        slides.forEach((slide) => observer.observe(slide));
+
+        indicadores.forEach((btn, i) => btn.addEventListener('click', () => irAManualmente(i)));
+        btnPrev?.addEventListener('click', () => { const anterior = actual <= 0 ? slides.length - 1 : actual - 1;
+            irAManualmente(anterior); });
+        btnNext?.addEventListener('click', () => { const siguiente = actual >= slides.length - 1 ? 0 : actual + 1; irAManualmente(siguiente); });
+
+        // Pausa mientras el mouse está encima (no tiene sentido en mobile,
+        // pero no molesta: touch no dispara mouseenter).
+        track.addEventListener('mouseenter', detenerAutoplay);
+        track.addEventListener('mouseleave', iniciarAutoplay);
+
+        marcarActivo(0);
+        iniciarAutoplay();
+    }
+</script>
