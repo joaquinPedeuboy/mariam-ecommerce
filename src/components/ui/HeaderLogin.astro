@@ -1,0 +1,43 @@
+---
+import { Picture } from 'astro:assets';
+import logo from '../../../public/logo/mariam_isotipo_transparente.png';
+---
+
+<header class="border-b border-stone-200 bg-white">
+    <div class="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6">
+        
+        <a href="/" aria-label="Mariam - Inicio">
+            <Picture
+                src={logo}
+                alt="Mariam"
+                width={160}
+                height={60}
+            />
+        </a>
+
+        <a
+            href="/"
+            class="flex items-center gap-2 text-sm font-medium text-stone-600 transition hover:text-violet-700"
+        >
+            <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.8"
+                stroke="currentColor"
+                class="h-5 w-5"
+            >
+                <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"
+                />
+            </svg>
+
+            <span class="hidden sm:inline">
+                Volver a la tienda
+            </span>
+        </a>
+
+    </div>
+</header>

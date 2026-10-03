@@ -3,21 +3,32 @@ import { useStore } from '@nanostores/react';
 import { $cart, $cartTotal, clearCart } from '../stores/cart';
 import { apiFetch, ApiError } from '../lib/api';
 import { CreateOrderResponseSchema } from '../schemas/order';
+import { useEmailVerification } from '../hooks/useEmailVerification';
 
 export default function CheckoutForm() {
     const items = useStore($cart);
     const total = useStore($cartTotal);
 
+    const { 
+        sending: sendingVerification, 
+        secondsLeft, 
+        message: verificationMessage, 
+        error: verificationError, 
+        resend, 
+    } = useEmailVerification();
+
     const [form, setForm] = useState({
         nombre_contacto: '',
         telefono_contacto: '',
         direccion_envio: '',
+        email_contacto: '',
         ciudad: '',
         provincia: '',
         codigo_postal: '',
     });
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const [emailNotVerified, setEmailNotVerified] = useState(false);
 
     const updateField = (field: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => {
         setForm((prev) => ({ ...prev, [field]: e.target.value }));
@@ -26,6 +37,7 @@ export default function CheckoutForm() {
     const handleSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
         e.preventDefault();
         setError(null);
+        setEmailNotVerified(false);
 
         const token = localStorage.getItem('token');
         if (!token) {
@@ -59,7 +71,9 @@ export default function CheckoutForm() {
                     window.location.href = '/login?redirect=/checkout';
                     return;
                 }
-                if (err.status === 404) {
+                if (err.status === 403) { 
+                    setEmailNotVerified(true); 
+                } else if (err.status === 404) {
                     setError('Uno de los productos de tu carrito ya no está disponible. Revisá tu carrito.');
                 } else if (err.status === 422) {
                     setError(err.data?.message ?? 'Revisá los datos ingresados.');
@@ -121,6 +135,17 @@ export default function CheckoutForm() {
                     />
                 </div>
 
+                <div>
+                    <label className="block text-sm font-medium text-stone-700 mb-1">Email de Contacto</label>
+                    <input
+                        type="text"
+                        value={form.email_contacto}
+                        onChange={updateField('email_contacto')}
+                        required
+                        className="w-full border border-stone-300 rounded-md px-3 py-2 text-sm"
+                    />
+                </div>
+
                 <div className="grid grid-cols-2 gap-3">
                     <div>
                         <label className="block text-sm font-medium text-stone-700 mb-1">Ciudad</label>
@@ -154,6 +179,42 @@ export default function CheckoutForm() {
                     />
                 </div>
 
+                {/* Verificacion de email */}
+                {emailNotVerified && ( 
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-4"> 
+                        <p className="text-sm font-medium text-amber-800"> 
+                            Email sin verificar 
+                        </p> 
+                        <p className="mt-1 text-sm leading-5 text-amber-700"> 
+                            Necesitás verificar tu email para poder continuar con la compra. 
+                        </p> 
+                        <button 
+                            type="button" 
+                            onClick={resend} 
+                            disabled={ sendingVerification || secondsLeft > 0 } 
+                            className="mt-3 rounded-lg bg-violet-700 px-4 py-2 text-sm font-medium text-white transition hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-50" 
+                        > 
+                            {sendingVerification 
+                                ? 'Enviando...' 
+                                : secondsLeft > 0 
+                                    ? `Reenviar en ${secondsLeft}s` 
+                                    : 'Reenviar email de verificación'
+                            } 
+                        </button> 
+                        {verificationMessage && ( 
+                            <p className="mt-3 text-sm text-[#6b9a5e]"> 
+                                {verificationMessage} 
+                            </p> 
+                        )} 
+                        
+                        {verificationError && ( 
+                            <p className="mt-3 text-sm text-red-600"> 
+                                {verificationError} 
+                            </p> 
+                        )} 
+                    </div> 
+                )}
+                
                 {error && (
                     <p className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-md p-3">{error}</p>
                 )}

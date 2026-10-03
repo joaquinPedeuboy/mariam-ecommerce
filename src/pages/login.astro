@@ -1,13 +1,12 @@
 ---    
-    import Layout from '../layouts/Layout.astro';
     import LoginForm from '../components/LoginForm';
+    import LayoutLogin from '@/layouts/LayoutLogin.astro';
 ---
 
-<Layout title="Ingresar - Perfumería">
-    <main class="min-h-screen flex items-center justify-center px-4">
+<LayoutLogin title="Ingresar - Perfumería">
+    <main class="flex flex-1 items-center justify-center px-4 py-16">
         <div class="w-full max-w-sm">
-            <h1 class="text-2xl font-semibold text-center mb-6">Ingresar</h1>
             <LoginForm client:load />
         </div>
     </main>
-</Layout>
+</LayoutLogin>

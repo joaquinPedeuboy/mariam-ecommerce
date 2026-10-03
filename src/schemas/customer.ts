@@ -6,6 +6,12 @@ export const CustomerSchema = z.object({
     apellido: z.string().nullable(),
     email: z.string().email(),
     telefono: z.string().nullable(),
+    email_verified_at: z.string().nullable(),
+});
+
+export const CustomerUpdateResponseSchema = z.object({
+    message: z.string(),
+    customer: CustomerSchema,
 });
 
 export const AuthResponseSchema = z.object({
@@ -15,3 +21,7 @@ export const AuthResponseSchema = z.object({
 
 export type Customer = z.infer<typeof CustomerSchema>;
 export type AuthResponse = z.infer<typeof AuthResponseSchema>;
+
+export const EmailVerificationResponseSchema = z.object({
+    message: z.string(),
+});

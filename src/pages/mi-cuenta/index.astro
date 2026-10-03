@@ -1,10 +1,10 @@
 ---
     import Layout from '../../layouts/Layout.astro';
-    import AccountView from '../../components/AccountView';
+    import AccountView from '../../components/account/AccountView';
 ---
 
 <Layout title="Mi cuenta - Perfumería">
-    <main class="min-h-screen px-4 py-12">
+    <main class="min-h-screen bg-stone-50 px-4 py-8 sm:py-12">
         <AccountView client:load />
     </main>
 </Layout>

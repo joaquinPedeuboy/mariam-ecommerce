@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { apiFetch, ApiError } from '../lib/api';
 import { ProductoListItemSchema } from '../schemas/producto';
 import { z } from 'zod';
+import { agregarFavorito, quitarFavorito, setFavoritos } from '../stores/favoritos';
 
 const CLAVE_LOCAL = 'favoritos_invitado';
 
@@ -33,12 +34,27 @@ export default function FavoritoButton({ productoEcommerceId }: Props) {
         if (token) {
             apiFetch('/store/favoritos', {}, z.array(ProductoListItemSchema))
                 .then((favoritos) => {
-                    setEsFavorito(favoritos.some((f) => f.id === productoEcommerceId));
+                    const ids = favoritos.map(
+                        (favorito) => favorito.id
+                    );
+
+                    setFavoritos(ids);
+
+                    setEsFavorito(
+                        ids.includes(productoEcommerceId)
+                    );
                 })
                 .catch(() => {})
                 .finally(() => setListo(true));
         } else {
-            setEsFavorito(leerLocales().includes(productoEcommerceId));
+            const ids = leerLocales();
+
+            setFavoritos(ids);
+
+            setEsFavorito(
+                ids.includes(productoEcommerceId)
+            );
+
             setListo(true);
         }
     }, [productoEcommerceId]);
@@ -68,18 +84,13 @@ export default function FavoritoButton({ productoEcommerceId }: Props) {
                 guardarLocales(nuevos);
             }
             setEsFavorito(nuevoEstado);
-        } catch (err) {
-            if (err instanceof ApiError && err.status === 401) {
-                // El token venció justo ahora: lo tratamos como invitado
-                // para esta acción, en vez de perder el toque del usuario.
-                localStorage.removeItem('token');
-                const actuales = leerLocales();
-                const nuevos = nuevoEstado
-                    ? [...actuales, productoEcommerceId]
-                    : actuales.filter((id) => id !== productoEcommerceId);
-                guardarLocales(nuevos);
-                setEsFavorito(nuevoEstado);
+            if (nuevoEstado) {
+                agregarFavorito(productoEcommerceId);
+            } else {
+                quitarFavorito(productoEcommerceId);
             }
+        } catch (err) {
+            if (err instanceof ApiError && err.status === 401) { localStorage.removeItem('token'); }
         } finally {
             setCargando(false);
         }
